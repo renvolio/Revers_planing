@@ -1,6 +1,6 @@
 namespace Revers_planing.Models;
 
-public class User
+public abstract class User
 {
     public Guid Id { get; set; }
     public string Name { get; set; } = String.Empty;
