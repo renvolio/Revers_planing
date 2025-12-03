@@ -15,13 +15,13 @@ public class Task_
     public Team Team { get; set; }
 
 
-    public Guid ProjectId { get; set; }
-    public Project Project { get; set; } = null!;
+    public Guid? ProjectId { get; set; }
+    public Project? Project { get; set; }
 
 
     public Guid? ParentTaskId { get; set; }
-    public Task? ParentTask { get; set; }
-    public ICollection<Task> Children { get; set; } = new List<Task>();
+    public Task_? ParentTask { get; set; }
+    public ICollection<Task_> Children { get; set; } = new List<Task_>();
 
     public TaskStatus Status { get; set; } = TaskStatus.Planned;
   

@@ -15,6 +15,4 @@ public class Subject
     public List<Project> Projects { get; set; } = new List<Project>();
     
     public List<Teacher> Teachers { get; set; } = new List<Teacher>();
-
-    
 }

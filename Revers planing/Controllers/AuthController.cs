@@ -1,6 +1,31 @@
+using Microsoft.AspNetCore.Mvc;
+using Revers_planing.DTOs.Auth;
+using Revers_planing.Services;
+
 namespace Revers_planing.Controllers;
 
-public class AuthController
+[ApiController]
+[Route("api/[controller]")]
+public class AuthController : ControllerBase
 {
-    private async Task <>
+    private readonly IAuthService _authService;
+
+    public AuthController(IAuthService authService)
+    {
+        _authService = authService;
+    }
+
+    [HttpPost("register")]
+    public async Task<IActionResult> Register([FromBody] RegisterDTO dto)
+    {
+        await _authService.Register(dto.Name, dto.Email, dto.Password, dto.IsTeacher, dto.Position);
+        return Ok(new { message = "ok" });
+    }
+
+    [HttpPost("login")]
+    public async Task<IActionResult> Login([FromBody] LoginDTO dto)
+    {
+        var token = await _authService.Login(dto.Email, dto.Password);
+        return Ok(new { token });
+    }
 }

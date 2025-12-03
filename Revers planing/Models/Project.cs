@@ -11,9 +11,9 @@ public class Project
     public Subject Subject { get; set; }
 
     public List<Team> Teams { get; set; } = new List<Team>();
+ 
+    public List<Task_> Tasks { get; set; } = new List<Task_>();
 
-    public List<Task> Tasks { get; set; } = new List<Task>();
-
-    public Guid TeacherId { get; set; }
-    public Teacher Teacher { get; set; }
+    public Guid? TeacherId { get; set; }
+    public Teacher? Teacher { get; set; }
 }

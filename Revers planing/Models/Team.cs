@@ -12,7 +12,7 @@ public class Team
     
     public List<Project> Projects { get; set; } = new List<Project>();
     
-    public List<Task> Tasks { get; set; } = new List<Task>();
+    public List<Task_> Tasks { get; set; } = new List<Task_>();
 
 
 }
