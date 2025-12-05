@@ -27,6 +27,11 @@ public class AuthController : ControllerBase
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginDTO dto, HttpContext context)
     {
+        if (string.IsNullOrEmpty(dto.Email) || string.IsNullOrEmpty(dto.Password))
+        {
+            return BadRequest(new { message = "Email и пароль обязательны" });
+        }
+
         var token = await _authService.Login(dto.Email, dto.Password);
         context.Response.Cookies.Append("cookie", token); 
 
