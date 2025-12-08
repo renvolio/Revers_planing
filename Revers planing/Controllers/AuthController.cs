@@ -20,20 +20,16 @@ public class AuthController : ControllerBase
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterDTO dto)
     {
-        await _authService.Register(dto.Name, dto.Email, dto.Password, dto.IsTeacher, dto.Position);
+        await _authService.Register(dto.Name, dto.Email, dto.Password, dto.IsTeacher, dto.Position, dto.GroupNumber);
         return Ok(new { message = "ok" });
     }
 
     [HttpPost("login")]
-    public async Task<IActionResult> Login([FromBody] LoginDTO dto, HttpContext context)
+    public async Task<IActionResult> Login([FromBody] LoginDTO dto)
     {
-        if (string.IsNullOrEmpty(dto.Email) || string.IsNullOrEmpty(dto.Password))
-        {
-            return BadRequest(new { message = "Email и пароль обязательны" });
-        }
 
-        var token = await _authService.Login(dto.Email, dto.Password);
-        context.Response.Cookies.Append("cookie", token); 
+        var token = await _authService.Login(dto.Email, dto.Password, dto.GroupNumber);
+        HttpContext.Response.Cookies.Append("cookie", token); 
 
         return Ok(new { token });
     }

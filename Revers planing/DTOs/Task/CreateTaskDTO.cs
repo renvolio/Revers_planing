@@ -10,6 +10,7 @@ public class CreateTaskDTO
     public Guid TeamId { get; set; }
     public Guid? ProjectId { get; set; }
     public Guid? ParentTaskId { get; set; }
+    public Guid? ResponsibleStudentId { get; set; }
 }
 
 

@@ -1,5 +1,6 @@
 ﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
+using System.Collections.Generic;
 
 #nullable disable
 
@@ -19,7 +20,8 @@ namespace Revers_planing.Migrations
                     Name = table.Column<string>(type: "text", nullable: false),
                     StartDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     EndDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    Discription = table.Column<string>(type: "text", nullable: false)
+                    Discription = table.Column<string>(type: "text", nullable: false),
+                    AllowedGroups = table.Column<List<int>>(type: "integer[]", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -32,6 +34,7 @@ namespace Revers_planing.Migrations
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     Name = table.Column<string>(type: "text", nullable: true),
+                    Number = table.Column<int>(type: "integer", nullable: false, defaultValue: 0),
                     SubjectId = table.Column<Guid>(type: "uuid", nullable: false)
                 },
                 constraints: table =>
@@ -54,6 +57,7 @@ namespace Revers_planing.Migrations
                     Email = table.Column<string>(type: "text", nullable: false),
                     PasswordHash = table.Column<string>(type: "text", nullable: false),
                     UserType = table.Column<string>(type: "character varying(8)", maxLength: 8, nullable: false),
+                    GroupNumber = table.Column<int>(type: "integer", nullable: false, defaultValue: 0),
                     TeamId = table.Column<Guid>(type: "uuid", nullable: true),
                     Position = table.Column<string>(type: "text", nullable: true)
                 },
@@ -74,6 +78,8 @@ namespace Revers_planing.Migrations
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     Name = table.Column<string>(type: "text", nullable: false),
                     Description = table.Column<string>(type: "text", nullable: false),
+                    StartDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    EndDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     SubjectId = table.Column<Guid>(type: "uuid", nullable: false),
                     TeacherId = table.Column<Guid>(type: "uuid", nullable: true)
                 },
@@ -179,7 +185,8 @@ namespace Revers_planing.Migrations
                     TeamId = table.Column<Guid>(type: "uuid", nullable: false),
                     ProjectId = table.Column<Guid>(type: "uuid", nullable: true),
                     ParentTaskId = table.Column<Guid>(type: "uuid", nullable: true),
-                    Status = table.Column<int>(type: "integer", nullable: false)
+                    Status = table.Column<int>(type: "integer", nullable: false),
+                    ResponsibleStudentId = table.Column<Guid>(type: "uuid", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -196,6 +203,12 @@ namespace Revers_planing.Migrations
                         principalTable: "Tasks",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Tasks_Users_ResponsibleStudentId",
+                        column: x => x.ResponsibleStudentId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.SetNull);
                     table.ForeignKey(
                         name: "FK_Tasks_Teams_TeamId",
                         column: x => x.TeamId,
@@ -264,6 +277,11 @@ namespace Revers_planing.Migrations
                 column: "ParentTaskId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Tasks_ResponsibleStudentId",
+                table: "Tasks",
+                column: "ResponsibleStudentId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Tasks_ProjectId",
                 table: "Tasks",
                 column: "ProjectId");
@@ -277,6 +295,12 @@ namespace Revers_planing.Migrations
                 name: "IX_Teams_SubjectId",
                 table: "Teams",
                 column: "SubjectId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Teams_SubjectId_Number",
+                table: "Teams",
+                columns: new[] { "SubjectId", "Number" },
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_Users_Email",

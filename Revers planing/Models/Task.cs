@@ -24,5 +24,6 @@ public class Task_
     public ICollection<Task_> Children { get; set; } = new List<Task_>();
 
     public TaskStatus Status { get; set; } = TaskStatus.Planned;
+    public Guid? ResponsibleStudentId { get; set; }
   
 }

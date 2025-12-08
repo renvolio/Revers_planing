@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Revers_planing.Data;
+using System.Collections.Generic;
 
 #nullable disable
 
@@ -50,9 +51,15 @@ namespace Revers_planing.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<DateTime>("EndDate")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<Guid>("SubjectId")
                         .HasColumnType("uuid");
@@ -74,6 +81,10 @@ namespace Revers_planing.Migrations
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
+
+                    b.Property<List<int>>("AllowedGroups")
+                        .IsRequired()
+                        .HasColumnType("integer[]");
 
                     b.Property<string>("Discription")
                         .IsRequired()
@@ -116,6 +127,9 @@ namespace Revers_planing.Migrations
                     b.Property<Guid?>("ParentTaskId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("ResponsibleStudentId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid?>("ProjectId")
                         .HasColumnType("uuid");
 
@@ -131,6 +145,8 @@ namespace Revers_planing.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ParentTaskId");
+
+                    b.HasIndex("ResponsibleStudentId");
 
                     b.HasIndex("ProjectId");
 
@@ -148,12 +164,18 @@ namespace Revers_planing.Migrations
                     b.Property<string>("Name")
                         .HasColumnType("text");
 
+                    b.Property<int>("Number")
+                        .HasColumnType("integer");
+
                     b.Property<Guid>("SubjectId")
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
                     b.HasIndex("SubjectId");
+
+                    b.HasIndex("SubjectId", "Number")
+                        .IsUnique();
 
                     b.ToTable("Teams");
                 });
@@ -167,6 +189,9 @@ namespace Revers_planing.Migrations
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<int>("GroupNumber")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -300,6 +325,11 @@ namespace Revers_planing.Migrations
                         .WithMany("Children")
                         .HasForeignKey("ParentTaskId")
                         .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Revers_planing.Models.Student", null)
+                        .WithMany()
+                        .HasForeignKey("ResponsibleStudentId")
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("Revers_planing.Models.Project", "Project")
                         .WithMany("Tasks")

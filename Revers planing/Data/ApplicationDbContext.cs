@@ -22,6 +22,10 @@ public class ApplicationDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
+        modelBuilder.Entity<Subject>()
+            .Property(s => s.AllowedGroups)
+            .HasColumnType("integer[]");
+
         modelBuilder.Entity<User>()
             .HasDiscriminator<string>("UserType")
             .HasValue<Student>("Student")
@@ -81,6 +85,16 @@ public class ApplicationDbContext : DbContext
             .HasOne(p => p.Teacher)
             .WithMany(t => t.Projects)
             .HasForeignKey(p => p.TeacherId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        modelBuilder.Entity<Team>()
+            .HasIndex(t => new { t.SubjectId, t.Number })
+            .IsUnique();
+
+        modelBuilder.Entity<Task_>()
+            .HasOne<Student>()
+            .WithMany()
+            .HasForeignKey(t => t.ResponsibleStudentId)
             .OnDelete(DeleteBehavior.SetNull);
     }
 }

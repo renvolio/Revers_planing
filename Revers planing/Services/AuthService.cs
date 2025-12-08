@@ -18,7 +18,7 @@ public class AuthService : IAuthService
         _jwtProvider = jwtProvider;
     }
 
-    public async Task<User> Register(string userName, string email, string password, bool isTeacher, string? position = null)
+    public async Task<User> Register(string userName, string email, string password, bool isTeacher, string? position = null, int? groupNumber = null)
     {
         var existingUser = await _context.Users
             .FirstOrDefaultAsync(u => u.Email == email);
@@ -45,50 +45,73 @@ public class AuthService : IAuthService
         }
         else
         {
-            newUser = new Student
+            if (!groupNumber.HasValue)
+            {
+                throw new InvalidOperationException("Судент должен указывать свою группу ");
+            }
+
+            var student = new Student
             {
                 Id = Guid.NewGuid(),
                 Name = userName,
                 Email = email,
-                PasswordHash = hashedPassword
+                PasswordHash = hashedPassword,
+                GroupNumber = groupNumber.Value
             };
-            await _context.Students.AddAsync((Student)newUser);
+            newUser = student;
+            await _context.Students.AddAsync(student);
         }
 
         await _context.SaveChangesAsync();
         return newUser;
     }
 
-    public async Task<string> Login(string email, string password)
+    public async Task<string> Login(string email, string password, int? groupNumber)
     {
-    // гет бай email
-    var user = await _context.Users.AsNoTracking()
-        .FirstOrDefaultAsync(u => u.Email == email) ?? throw new Exception("пользователь не найден");
+        var user = await _context.Users
+            .FirstOrDefaultAsync(u => u.Email == email) ?? throw new Exception("пользователь не найден");
 
 
     // проверяем пароль 
     var result = _passwordHasher.Verify(password, user.PasswordHash);
 
-    if (result == false)
-    {
-        throw new Exception("не правильный пароль"); 
-    }
+        if (result == false)
+        {
+            throw new Exception("не правильный пароль"); 
+        }
 
-    // определяем роль
-    string role;
-    var teacher = await _context.Teachers.AsNoTracking()
-        .FirstOrDefaultAsync(t => t.Id == user.Id);
-    
-    if (teacher != null)
-    {
-        role = "Teacher";
-    }
-    else
-    {
-        role = "Student";
-    }
+        string role;
+        var teacher = await _context.Teachers.AsNoTracking()
+            .FirstOrDefaultAsync(t => t.Id == user.Id);
+        
+        if (teacher != null)
+        {
+            role = "Teacher";
+        }
+        else
+        {
+            var student = await _context.Students
+                .FirstOrDefaultAsync(s => s.Id == user.Id) ?? throw new Exception("Студент не найден");
 
-    // генерируем токен с ролью
+            if (!groupNumber.HasValue)
+            {
+                throw new InvalidOperationException(" нужно указать номер группы для входа студента");
+            }
+
+            if (student.GroupNumber == 0)
+            {
+                student.GroupNumber = groupNumber.Value;
+                await _context.SaveChangesAsync();
+            }
+            else if (student.GroupNumber != groupNumber.Value)
+            {
+                throw new InvalidOperationException("номер группы не совпадает с сохраненным");
+            }
+
+            role = "Student";
+        }
+
+    // генерируем токен
     var token = _jwtProvider.GenerateToken(user, role);
     return token;
     } 
