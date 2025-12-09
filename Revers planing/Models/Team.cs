@@ -3,6 +3,7 @@ namespace Revers_planing.Models;
 public class Team 
 {
     public Guid Id { get; set; }
+    public int Number { get; set; }
     public string? Name { get; set; }
      public int Number { get; set; }
     

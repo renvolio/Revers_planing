@@ -51,6 +51,14 @@ public class Program
             options.AddPolicy("Teacher", policy => policy.RequireRole("Teacher"));
             options.AddPolicy("Student", policy => policy.RequireRole("Student"));
         });
+        builder.Services.AddCors(options => {
+            options.AddPolicy("AllowFrontend", policy => {
+                policy.SetIsOriginAllowed(origin => true)
+                      .AllowAnyHeader()
+                      .AllowAnyMethod()
+                      .AllowCredentials();
+            });
+        });
 
         var app = builder.Build();
 
@@ -62,13 +70,11 @@ public class Program
 
         app.UseHttpsRedirection();
 
-        app.UseCors();
-
+        app.UseCors("AllowFrontend");
         app.UseAuthentication();
         app.UseAuthorization();
        
         app.MapControllers();
-
         app.Run();
     }
 }

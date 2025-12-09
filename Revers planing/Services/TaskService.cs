@@ -106,7 +106,7 @@ public class TaskService : ITaskService
             TeamId = dto.TeamId,
             ProjectId = projectId,
             ParentTaskId = dto.ParentTaskId,
-            Status = TaskStatus.Planned,
+            Status = Models.TaskStatus.Planned,
             ResponsibleStudentId = dto.ResponsibleStudentId
         };
 

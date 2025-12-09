@@ -13,7 +13,7 @@ public class TaskDTO
     public Guid TeamId { get; set; }
     public Guid? ProjectId { get; set; }
     public Guid? ParentTaskId { get; set; }
-    public TaskStatus Status { get; set; }
+    public Models.TaskStatus Status { get; set; }
     public Guid? ResponsibleStudentId { get; set; }
 }
 
