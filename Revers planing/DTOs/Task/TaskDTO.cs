@@ -15,9 +15,6 @@ public class TaskDTO
     public Guid? ParentTaskId { get; set; }
     public TaskStatus Status { get; set; }
     public Guid? ResponsibleStudentId { get; set; }
-    public DateTime StartDate { get; set; }
-    public DateTime EndDate { get; set; }
-    public TimeSpan DeadlineAssessment { get; set; }
 }
 
 

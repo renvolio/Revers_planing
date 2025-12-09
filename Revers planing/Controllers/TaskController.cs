@@ -10,7 +10,7 @@ namespace Revers_planing.Controllers;
 
 [ApiController]
 [Route("api/subjects/{subjectId:guid}/projects/{projectId:guid}/tasks")]
-[Authorize(Roles = "Student")]
+[Authorize]
 public class TaskController : ControllerBase
 {
     private readonly ITaskService _taskService;
@@ -25,12 +25,22 @@ public class TaskController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> Get(Guid subjectId, Guid projectId)
     {
-        var team = await GetStudentTeam(subjectId);
-        var tasks = await _taskService.GetByProjectForTeamAsync(projectId, team.Id);
-        return Ok(tasks.Select(ToDto));
+        if (User.IsInRole("Teacher"))
+        {
+            var teacherId = GetUserId();
+            var tasks = await _taskService.GetByProjectForTeacherAsync(projectId, subjectId, teacherId);
+            return Ok(tasks.Select(ToDto));
+        }
+        else
+        {
+            var team = await GetStudentTeam(subjectId);
+            var tasks = await _taskService.GetByProjectForTeamAsync(projectId, team.Id);
+            return Ok(tasks.Select(ToDto));
+        }
     }
 
     [HttpPost]
+    [Authorize(Roles = "Student")]
     public async Task<IActionResult> Create(Guid subjectId, Guid projectId, [FromBody] CreateTaskDTO dto)
     {
         var studentId = GetUserId();
@@ -39,18 +49,20 @@ public class TaskController : ControllerBase
     }
 
     [HttpPut("{taskId:guid}")]
+    [Authorize(Roles = "Student")]
     public async Task<IActionResult> Update(Guid subjectId, Guid projectId, Guid taskId, [FromBody] UpdateTaskDTO dto)
     {
         var studentId = GetUserId();
-        var task = await _taskService.UpdateAsync(studentId, subjectId, taskId, dto);
+        var task = await _taskService.UpdateAsync(studentId, subjectId, projectId, taskId, dto);
         return Ok(ToDto(task));
     }
 
     [HttpDelete("{taskId:guid}")]
+    [Authorize(Roles = "Student")]
     public async Task<IActionResult> Delete(Guid subjectId, Guid projectId, Guid taskId, [FromQuery] bool cascade = false)
     {
         var studentId = GetUserId();
-        await _taskService.DeleteAsync(studentId, subjectId, taskId, cascade);
+        await _taskService.DeleteAsync(studentId, subjectId, projectId, taskId, cascade);
         return NoContent();
     }
 

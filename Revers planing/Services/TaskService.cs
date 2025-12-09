@@ -23,6 +23,26 @@ public class TaskService : ITaskService
             .ToListAsync();
     }
 
+    public async Task<IEnumerable<Task_>> GetByProjectForTeacherAsync(Guid projectId, Guid subjectId, Guid teacherId)
+    {
+        var project = await _context.Projects
+            .Include(p => p.Subject)
+            .ThenInclude(s => s.Teachers)
+            .FirstOrDefaultAsync(p => p.Id == projectId && p.SubjectId == subjectId)
+            ?? throw new InvalidOperationException("проект не найден");
+
+        if (!project.Subject.Teachers.Any(t => t.Id == teacherId))
+        {
+            throw new UnauthorizedAccessException("учитель не привязан к предмету");
+        }
+
+        return await _context.Tasks
+            .Include(t => t.Children)
+            .Where(t => t.ProjectId == projectId)
+            .AsNoTracking()
+            .ToListAsync();
+    }
+
     public async Task<Task_> CreateAsync(Guid studentId, Guid subjectId, Guid projectId, CreateTaskDTO dto)
     {
         var student = await _context.Students
@@ -95,7 +115,7 @@ public class TaskService : ITaskService
         return task;
     }
 
-    public async Task<Task_> UpdateAsync(Guid studentId, Guid subjectId, Guid taskId, UpdateTaskDTO dto)
+    public async Task<Task_> UpdateAsync(Guid studentId, Guid subjectId, Guid projectId, Guid taskId, UpdateTaskDTO dto)
     {
         var student = await _context.Students
             .Include(s => s.Team)
@@ -112,6 +132,11 @@ public class TaskService : ITaskService
             .ThenInclude(p => p.Subject)
             .FirstOrDefaultAsync(t => t.Id == taskId)
             ?? throw new InvalidOperationException("задача не найдена");
+
+        if (task.ProjectId != projectId)
+        {
+            throw new InvalidOperationException("задача не относится к указанному проекту");
+        }
 
         if (task.TeamId != student.Team.Id)
         {
@@ -169,7 +194,7 @@ public class TaskService : ITaskService
         return task;
     }
 
-    public async Task DeleteAsync(Guid studentId, Guid subjectId, Guid taskId, bool cascade)
+    public async Task DeleteAsync(Guid studentId, Guid subjectId, Guid projectId, Guid taskId, bool cascade)
     {
         var student = await _context.Students
             .Include(s => s.Team)
@@ -185,6 +210,11 @@ public class TaskService : ITaskService
             .Include(t => t.Children)
             .FirstOrDefaultAsync(t => t.Id == taskId)
             ?? throw new InvalidOperationException("задача не найдена");
+
+        if (task.ProjectId != projectId)
+        {
+            throw new InvalidOperationException("задача не относится к указанному проекту");
+        }
 
         if (task.TeamId != student.Team.Id)
         {

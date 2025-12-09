@@ -32,6 +32,16 @@ public class Program
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
 
+        builder.Services.AddCors(options =>
+        {
+            options.AddDefaultPolicy(policy =>
+            {
+                policy.AllowAnyOrigin()
+                      .AllowAnyMethod()
+                      .AllowAnyHeader();
+            });
+        });
+
         builder.Services.AddAuthorization(options =>
         {
             options.FallbackPolicy = new AuthorizationPolicyBuilder()
@@ -51,6 +61,8 @@ public class Program
         }
 
         app.UseHttpsRedirection();
+
+        app.UseCors();
 
         app.UseAuthentication();
         app.UseAuthorization();
