@@ -8,6 +8,7 @@ namespace Revers_planing.Services;
 public class TaskService : ITaskService
 {
     private readonly ApplicationDbContext _context;
+    private ITaskService _taskServiceImplementation;
 
     public TaskService(ApplicationDbContext context)
     {
