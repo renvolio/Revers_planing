@@ -6,7 +6,6 @@ public class CreateTaskDTO
     public string? Description { get; set; }
     public TimeSpan DeadlineAssessment { get; set; }
     public DateTime EndDate { get; set; }
-    public DateTime StartDate { get; set; }
     public Guid TeamId { get; set; }
     public Guid? ProjectId { get; set; }
     public Guid? ParentTaskId { get; set; }

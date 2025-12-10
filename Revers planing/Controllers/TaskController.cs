@@ -31,12 +31,16 @@ public class TaskController : ControllerBase
             var tasks = await _taskService.GetByProjectForTeacherAsync(projectId, subjectId, teacherId);
             return Ok(tasks.Select(ToDto));
         }
-        else
+
+        // Student: если студент ещё не в команде предмета, просто возвращаем пустой список
+        var team = await TryGetStudentTeam(subjectId);
+        if (team == null)
         {
-            var team = await GetStudentTeam(subjectId);
-            var tasks = await _taskService.GetByProjectForTeamAsync(projectId, team.Id);
-            return Ok(tasks.Select(ToDto));
+            return Ok(Array.Empty<TaskDTO>());
         }
+
+        var teamTasks = await _taskService.GetByProjectForTeamAsync(projectId, team.Id);
+        return Ok(teamTasks.Select(ToDto));
     }
 
     [HttpPost]
@@ -57,6 +61,20 @@ public class TaskController : ControllerBase
         return Ok(ToDto(task));
     }
 
+    [HttpPut("{taskId:guid}/coords")]
+    [Authorize]
+    public async Task<IActionResult> UpdateCoordinates(Guid projectId, Guid taskId, [FromBody] UpdateCoordsDTO dto)
+    {
+        var task = await _context.Tasks.FirstOrDefaultAsync(t => t.Id == taskId);
+        if (task == null) return NotFound();
+
+        if (task.ProjectId != projectId) return BadRequest("Wrong project");
+        task.X = dto.X;
+        task.Y = dto.Y;
+        await _context.SaveChangesAsync();
+        return Ok();
+    }
+
     [HttpDelete("{taskId:guid}")]
     [Authorize(Roles = "Student")]
     public async Task<IActionResult> Delete(Guid subjectId, Guid projectId, Guid taskId, [FromQuery] bool cascade = false)
@@ -73,7 +91,7 @@ public class TaskController : ControllerBase
         return Guid.Parse(userId);
     }
 
-    private async Task<Team> GetStudentTeam(Guid subjectId)
+    private async Task<Team?> TryGetStudentTeam(Guid subjectId)
     {
         var studentId = GetUserId();
         var student = await _context.Students
@@ -83,7 +101,7 @@ public class TaskController : ControllerBase
 
         if (student.Team == null || student.Team.SubjectId != subjectId)
         {
-            throw new UnauthorizedAccessException("студент не состоит в команде предмета");
+            return null;
         }
 
         return student.Team;
@@ -97,11 +115,15 @@ public class TaskController : ControllerBase
         DeadlineAssessment = task.DeadlineAssessment,
         EndDate = task.EndDate,
         StartDate = task.StartDate,
+        X = task.X,
+        Y = task.Y,
         TeamId = task.TeamId,
         ProjectId = task.ProjectId,
         ParentTaskId = task.ParentTaskId,
         Status = task.Status,
-        ResponsibleStudentId = task.ResponsibleStudentId
+        ResponsibleStudentId = task.ResponsibleStudentId,
+        ResponsibleStudentName = task.ResponsibleStudent?.Name,
+        ResponsibleStudentEmail = task.ResponsibleStudent?.Email
     };
 }
 

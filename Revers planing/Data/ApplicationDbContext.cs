@@ -92,7 +92,7 @@ public class ApplicationDbContext : DbContext
             .IsUnique();
 
         modelBuilder.Entity<Task_>()
-            .HasOne<Student>()
+            .HasOne(t => t.ResponsibleStudent)
             .WithMany()
             .HasForeignKey(t => t.ResponsibleStudentId)
             .OnDelete(DeleteBehavior.SetNull);

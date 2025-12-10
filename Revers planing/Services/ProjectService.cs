@@ -97,6 +97,17 @@ public class ProjectService : IProjectService
             throw new UnauthorizedAccessException("учитель не привязан к предмету");
         }
 
+        // Нельзя менять даты проекта, если к нему уже привязаны задачи
+        if (dto.StartDate.HasValue || dto.EndDate.HasValue)
+        {
+            var hasTasks = await _context.Tasks.AsNoTracking()
+                .AnyAsync(t => t.ProjectId == projectId);
+            if (hasTasks)
+            {
+                throw new InvalidOperationException("нельзя менять даты проекта, к которому уже привязаны задачи");
+            }
+        }
+
         if (dto.Name != null) project.Name = dto.Name;
         if (dto.Description != null) project.Description = dto.Description;
         if (dto.StartDate.HasValue || dto.EndDate.HasValue)

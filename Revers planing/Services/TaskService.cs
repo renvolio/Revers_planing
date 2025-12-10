@@ -19,6 +19,7 @@ public class TaskService : ITaskService
     {
         return await _context.Tasks
             .Include(t => t.Children)
+            .Include(t => t.ResponsibleStudent)
             .Where(t => t.ProjectId == projectId && t.TeamId == teamId)
             .AsNoTracking()
             .ToListAsync();
@@ -39,6 +40,7 @@ public class TaskService : ITaskService
 
         return await _context.Tasks
             .Include(t => t.Children)
+            .Include(t => t.ResponsibleStudent)
             .Where(t => t.ProjectId == projectId)
             .AsNoTracking()
             .ToListAsync();
@@ -67,7 +69,7 @@ public class TaskService : ITaskService
             .FirstOrDefaultAsync(p => p.Id == projectId && p.SubjectId == subjectId)
             ?? throw new InvalidOperationException("проект не найден");
 
-        ValidateTaskTiming(dto.StartDate, dto.EndDate, project, null);
+        var calculatedStartTime = dto.EndDate.Subtract(dto.DeadlineAssessment);
 
         Task_? parentTask = null;
         if (dto.ParentTaskId.HasValue)
@@ -87,9 +89,9 @@ public class TaskService : ITaskService
             {
                 throw new InvalidOperationException("родительская задача относится к другому проекту");
             }
-
-            ValidateTaskTiming(dto.StartDate, dto.EndDate, project, parentTask);
         }
+
+        ValidateTaskTiming(calculatedStartTime, dto.EndDate, project, parentTask);
 
         if (dto.ResponsibleStudentId.HasValue)
         {
@@ -102,7 +104,7 @@ public class TaskService : ITaskService
             Name = dto.Name,
             Description = dto.Description,
             DeadlineAssessment = dto.DeadlineAssessment,
-            StartDate = dto.StartDate,
+            StartDate = calculatedStartTime,
             EndDate = dto.EndDate,
             TeamId = dto.TeamId,
             ProjectId = projectId,
@@ -151,45 +153,33 @@ public class TaskService : ITaskService
 
         if (dto.Name != null) task.Name = dto.Name;
         if (dto.Description != null) task.Description = dto.Description;
-        if (dto.DeadlineAssessment.HasValue) task.DeadlineAssessment = dto.DeadlineAssessment.Value;
+        if (dto.Status.HasValue) task.Status = dto.Status.Value;
 
-        var newProjectId = dto.ProjectId ?? task.ProjectId;
-        var project = await _context.Projects
-            .Include(p => p.Subject)
-            .FirstOrDefaultAsync(p => p.Id == newProjectId && p.SubjectId == subjectId)
+        var newDuration = dto.DeadlineAssessment ?? task.DeadlineAssessment;
+        var newEndDate = dto.EndDate ?? task.EndDate;
+        var newStartDate = newEndDate.Subtract(newDuration);
+
+        var project = await _context.Projects.Include(p => p.Subject)
+            .FirstOrDefaultAsync(p => p.Id == (dto.ProjectId ?? task.ProjectId))
             ?? throw new InvalidOperationException("проект не найден");
 
-        var newParentTaskId = dto.ParentTaskId ?? task.ParentTaskId;
         Task_? parentTask = null;
-        if (newParentTaskId.HasValue)
+        var parentId = dto.ParentTaskId ?? task.ParentTaskId;
+        if (parentId.HasValue)
         {
-            parentTask = await _context.Tasks
-                .Include(t => t.Project)
-                .ThenInclude(p => p.Subject)
-                .FirstOrDefaultAsync(t => t.Id == newParentTaskId.Value)
-                ?? throw new InvalidOperationException("родительская задача не найдена");
-
-            if (parentTask.TeamId != student.Team.Id)
-            {
-                throw new UnauthorizedAccessException("нельзя привязать к задаче другой команды");
-            }
-
-            if (parentTask.ProjectId != newProjectId)
-            {
-                throw new InvalidOperationException("родительская задача относится к другому проекту");
-            }
+            parentTask = await _context.Tasks.FindAsync(parentId.Value);
         }
 
-        var newStart = dto.StartDate ?? task.StartDate;
-        var newEnd = dto.EndDate ?? task.EndDate;
-        ValidateTaskTiming(newStart, newEnd, project, parentTask);
+        ValidateTaskTiming(newStartDate, newEndDate, project, parentTask);
 
-        task.ProjectId = newProjectId;
-        task.ParentTaskId = newParentTaskId;
-        task.StartDate = newStart;
-        task.EndDate = newEnd;
-        if (dto.Status.HasValue) task.Status = dto.Status.Value;
-        task.ResponsibleStudentId = dto.ResponsibleStudentId ?? task.ResponsibleStudentId;
+        task.DeadlineAssessment = newDuration;
+        task.EndDate = newEndDate;
+        task.StartDate = newStartDate;
+        task.ProjectId = project.Id;
+        task.ParentTaskId = parentId;
+
+        if (dto.ResponsibleStudentId.HasValue)
+            task.ResponsibleStudentId = dto.ResponsibleStudentId;
 
         await _context.SaveChangesAsync();
         return task;
@@ -244,33 +234,26 @@ public class TaskService : ITaskService
 
     private static void ValidateTaskTiming(DateTime start, DateTime end, Project project, Task_? parentTask)
     {
-        if (start < DateTime.UtcNow.Date)
+        //if (start < DateTime.UtcNow.Date)
+        //{
+        //    throw new InvalidOperationException($"Мало времени. Чтобы успеть к {end:d}, задачу нужно было начать {start:d} (которая в прошлом). Нужно либо увеличить дедлайн, либо сократить время выполнения");
+        //}
+
+        if (start < project.StartDate)
         {
-            throw new InvalidOperationException("дата начала задачи не может быть в прошлом");
+            throw new InvalidOperationException($"Расчетная дата начала ({start:d}) раньше старта проекта ({project.StartDate:d}).");
         }
 
-        if (end < start)
+        if (end > project.EndDate)
         {
-            throw new InvalidOperationException("окончание задачи раньше начала");
-        }
-
-        if (start < project.StartDate || end > project.EndDate)
-        {
-            throw new InvalidOperationException("даты задачи должны быть внутри дат проекта");
+            throw new InvalidOperationException($"Дедлайн задачи ({end:d}) позже окончания проекта ({project.EndDate:d}).");
         }
 
         if (parentTask != null)
         {
-            if (start < parentTask.StartDate || end > parentTask.EndDate)
+            if (end > parentTask.EndDate)
             {
-                throw new InvalidOperationException("даты задачи должны быть внутри дат родительской задачи");
-            }
-        }
-        else
-        {
-            if (end > project.Subject.EndDate)
-            {
-                throw new InvalidOperationException("дата окончания задачи не должна выходить за рамки предмета");
+                throw new InvalidOperationException($"Подзадача не может заканчиваться позже родительской задачи (Дедлайн родителя: {parentTask.EndDate:d}).");
             }
         }
     }

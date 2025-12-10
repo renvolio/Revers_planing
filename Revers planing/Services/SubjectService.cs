@@ -81,6 +81,18 @@ public class SubjectService : ISubjectService
             throw new UnauthorizedAccessException(" учитель не имеет доступа к предмету");
         }
 
+        // Нельзя менять даты предмета, если к его проектам уже привязаны задачи
+        if (dto.StartDate.HasValue || dto.EndDate.HasValue)
+        {
+            var hasTasks = await _context.Tasks.AsNoTracking()
+                .Include(t => t.Project)
+                .AnyAsync(t => t.Project != null && t.Project.SubjectId == subjectId);
+            if (hasTasks)
+            {
+                throw new InvalidOperationException("нельзя менять даты предмета, к которому уже привязаны задачи в проектах");
+            }
+        }
+
         var newStart = dto.StartDate ?? subject.StartDate;
         var newEnd = dto.EndDate ?? subject.EndDate;
         ValidateSubjectDates(newStart, newEnd);
@@ -99,6 +111,8 @@ public class SubjectService : ISubjectService
     {
         var subject = await _context.Subjects
             .Include(s => s.Teachers)
+            .Include(s => s.Teams)
+            .ThenInclude(t => t.Students)
             .FirstOrDefaultAsync(s => s.Id == subjectId)
             ?? throw new InvalidOperationException(" предмет не найден");
 
@@ -106,7 +120,16 @@ public class SubjectService : ISubjectService
         {
             throw new UnauthorizedAccessException("учитель не имеет доступа к предмету");
         }
-
+        foreach (var team in subject.Teams)
+        {
+            if (team.Students != null)
+            {
+                foreach (var student in team.Students)
+                {
+                    student.Team = null;
+                }
+            }
+        }
         _context.Subjects.Remove(subject);
         await _context.SaveChangesAsync();
     }

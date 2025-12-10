@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Revers_planing.Data;
 using Revers_planing.DTOs.Subject;
+using Revers_planing.DTOs.Subject.Team;
 using Revers_planing.Models;
 using Revers_planing.Services;
 
@@ -114,6 +115,36 @@ public class SubjectController : ControllerBase
             Subject = ToDto(subject),
             Team = new { team.Id, team.Number, team.Name }
         });
+    }
+
+    [HttpGet("{subjectId:guid}/team/members")]
+    [Authorize(Roles = "Student")]
+    public async Task<IActionResult> GetTeamMembers(Guid subjectId)
+    {
+        var studentId = GetUserId();
+
+        var student = await _context.Students
+            .Include(s => s.Team)
+            .ThenInclude(t => t!.Students)
+            .FirstOrDefaultAsync(s => s.Id == studentId)
+            ?? throw new InvalidOperationException("студент не найден");
+
+        if (student.Team == null || student.Team.SubjectId != subjectId)
+        {
+            // Return empty list instead of throwing error
+            return Ok(new List<TeamMemberDTO>());
+        }
+
+        var members = student.Team.Students
+            .Select(s => new TeamMemberDTO
+            {
+                Id = s.Id,
+                Name = s.Name,
+                Email = s.Email
+            })
+            .ToList();
+
+        return Ok(members);
     }
 
     private Guid GetUserId()

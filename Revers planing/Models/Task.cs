@@ -8,6 +8,8 @@ public class Task_
     public TimeSpan DeadlineAssessment { get; set; }
     public DateTime EndDate { get; set; }
     public DateTime StartDate { get; set; }
+    public double X { get; set; } = 100;
+    public double Y { get; set; } = 100;
     
     public List<Student> Students { get; set; } = new();
 
@@ -25,5 +27,5 @@ public class Task_
 
     public TaskStatus Status { get; set; } = TaskStatus.Planned;
     public Guid? ResponsibleStudentId { get; set; }
-  
+    public Student? ResponsibleStudent { get; set; }
 }
